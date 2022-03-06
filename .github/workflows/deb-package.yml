@@ -1,0 +1,31 @@
+name: Deb package
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      
+      - name: Initialization environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install debhelper dkms
+
+      - name: Build
+        run: |
+          make deb
+      
+      - name: Release
+        run: |
+          time="${{ github.event.head_commit.timestamp }}"
+          sha="${GITHUB_SHA:0:8}"
+          tag="ci-$(date +'%Y%m%d-%H%M' -d "$time")"
+          message="Auto-Release $(date +'%Y-%m-%d %H:%M' -d "$time")"
+          hub release create $(for a in ../*.deb; do echo -a $a; done) -t "$GITHUB_SHA" "$tag" -m "$message"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
